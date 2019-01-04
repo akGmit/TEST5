@@ -1,0 +1,27 @@
+package ie.gmit.sw;
+
+import java.io.File;
+import java.io.FilenameFilter;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+
+public class Processor {
+
+  public void processSubjectFiles(String dir) {
+    
+    File f = new File(dir);
+    
+    String[] files = f.list(new FilenameFilter() {
+      public boolean accept(File current, String name) {
+        return new File(current, name).isFile();
+      }
+    });
+    
+    BlockingQueue<Word> queue = new ArrayBlockingQueue<Word>(100);
+
+    for(String s : files) {
+      System.out.println(s);
+      new Thread(new FileParser(queue, dir+s)).start();
+    }
+  }
+}

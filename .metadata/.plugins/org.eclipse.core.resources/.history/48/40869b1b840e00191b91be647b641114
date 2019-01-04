@@ -1,0 +1,25 @@
+package ie.gmit.sw;
+
+import java.util.Scanner;
+
+public final class Menu {
+  private Scanner in;
+  private boolean running;
+
+  public Menu() {
+    in = new Scanner(System.in);
+    running = true;
+  }
+
+  public void execute() {
+    System.out.println(welcomeMessage());
+    do {
+
+    } while (running);
+  }
+
+  private String welcomeMessage() {
+    return "*****Document Comparison Service*****";
+  }
+
+}

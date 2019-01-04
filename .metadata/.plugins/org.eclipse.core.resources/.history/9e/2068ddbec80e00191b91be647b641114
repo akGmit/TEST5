@@ -1,0 +1,78 @@
+package ie.gmit.sw;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.BlockingQueue;
+
+public class ShingleProcessor implements Runnable {
+  private Map<String, List<Index>> db;
+  private BlockingQueue<Word> queue;
+  private volatile int fileCount;
+  
+  public ShingleProcessor(BlockingQueue<Word> q, Map<String, List<Index>> db, int fileCount) {
+    this.queue = q;
+    this.fileCount = fileCount;
+    this.db = db;
+  }
+  @Override
+  public void run() {
+    try {
+      Thread.sleep(3000);
+    } catch (InterruptedException e1) {
+      // TODO Auto-generated catch block
+      e1.printStackTrace();
+    }
+    System.out.println("Shingle taker running");
+    while(fileCount > 0) {
+      Word w = null;
+      
+      try {
+        w = queue.take();
+      } catch (InterruptedException e) {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+      }
+      
+      if(w instanceof Poison) {
+        fileCount--;
+      }else {
+        String shingle = w.getShingle();
+        List<Index> list = null;
+        
+        if(!db.containsKey(shingle)) {
+          //System.out.println(shingle);
+          list = new ArrayList<>();
+          //list = db.get(shingle);
+          list.add(new Index(1, w.getFileName()));
+          db.put(shingle, list);
+        }else if(db.containsKey(shingle)) {
+          System.out.println("ASDF");
+          list = db.get(shingle);
+          for(Index i : list) {
+            //System.out.println(shingle + " " + i.getFileName() + " " + w.getFileName() + " " + i.getFrequency());
+            if(i.getFileName().equalsIgnoreCase(w.getFileName())) {
+              i.setFrequency(i.getFrequency() + 1);
+            }else {
+              
+            }
+          }
+        }
+      }
+      
+      if(fileCount == 0) {
+        db.forEach((k,v) -> printData(k,v));
+        new CosineDistanceCalculator(db, "q").cosineSimilarity();;
+      }
+    }
+  }
+  
+  public void printData(String name, List<Index> index) {
+    System.out.print(name);
+    for(Index i : index) {
+      System.out.print(" " + i.getFileName() + " " + i.getFrequency());
+      System.out.println();
+    }
+  }
+
+}

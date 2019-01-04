@@ -1,0 +1,95 @@
+package ie.gmit.sw;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+
+public class CosineDistanceCalculator {
+  private Map<String, List<Index>> db;
+  private String queryFile;
+  private Map<String, Integer> queryFileSequence;
+  private Map<String, Map<String, Integer>> subjectFileSequence;
+  private double dotProduct;
+  
+  public CosineDistanceCalculator(Map<String, List<Index>> db, String queryFile) {
+    this.db = db;
+    this.queryFile = queryFile;
+    subjectFileSequence = new TreeMap<>();
+    queryFileSequence = new TreeMap<>();
+  }
+  
+  public void setQueryFileSequence() {
+    db.forEach((k,v) -> populateQueryMap(k, v));
+    //queryFileSequence.forEach((k,v) -> printData("Query", queryFileSequence));
+  }
+  
+  public void printData(String name, Map<String, Integer> index) {
+    System.out.println(name + " ------");
+    for(String i : index.keySet()) {
+      System.out.println("" + i + " " + index.get(i));
+    }
+  }
+  
+  private void populateQueryMap(String shingle, List<Index> list) {
+    for(Index i : list) {
+      if(i.getFileName().equalsIgnoreCase(queryFile)) {
+        queryFileSequence.put(shingle, i.getFrequency());
+      }
+    }
+    
+    //printData(queryFile, queryFileSequence);
+  }
+  
+  private HashSet<String> getUniqueWords(Map<String, Integer> subject){
+    HashSet<String> intersection = new HashSet<>(subject.keySet());
+    intersection.retainAll(queryFileSequence.keySet());
+    //intersection.forEach(s -> System.out.println(s));
+    return intersection;
+  }
+  
+  private double dotProduct(HashSet<String> intersection, Map<String, Integer> subject) {
+    double dotProduct = 0;
+    for(String shingle : intersection) {
+      dotProduct += queryFileSequence.get(shingle) * subject.get(shingle);
+    }
+    
+    return dotProduct;
+  }
+  
+  private double magnitude(Map<String, Integer> item) {
+    double magnitude = 0;
+    for(String s : item.keySet()) {
+      magnitude += Math.pow(item.get(s), 2);
+    }
+    return magnitude;
+  }
+  
+  public void cosineSimilarity() {
+    
+    Map<String, Double> cosSimilarity = new TreeMap<>();
+    HashSet<String> intersection;
+    double dotProduct = 0;
+    double magnitude = 0;
+    double queryFileMagnitude = magnitude(queryFileSequence);
+    
+    setQueryFileSequence();
+   // setSubjectFileSequence();
+    //subjectFileSequence.forEach((k,v)-> printData(k, v));
+    //queryFileSequence.forEach((k,v)->System.out.println(k + " " + v));
+    for(String s : subjectFileSequence.keySet()) {
+      intersection = getUniqueWords(subjectFileSequence.get(s));
+      dotProduct = dotProduct(intersection, queryFileSequence);
+      magnitude = magnitude(subjectFileSequence.get(s));
+      double cosSim = dotProduct / Math.sqrt(queryFileMagnitude * magnitude);
+      cosSimilarity.put(s, cosSim);
+    }
+    
+    cosSimilarity.forEach((k,v) -> System.out.println("File: " + k + " Similarity: " + v));
+  }
+  
+}

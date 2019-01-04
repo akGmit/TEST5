@@ -1,0 +1,89 @@
+package ie.gmit.sw;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Callable;
+
+public class ShingleProc implements Callable<Map<String, List<Index>>>, Comparable<Map<String, List<Index>>> {
+  private BlockingQueue<Word> q;
+  private Map<String, List<Index>> map;
+  private volatile boolean running = true;
+  
+  
+  public ShingleProc(BlockingQueue<Word> q) {
+    super();
+    this.q = q;
+    this.map = new TreeMap<>();
+    this.running = running;
+  }
+
+  @Override
+  public Map<String, List<Index>> call() throws Exception {
+    System.out.println("Shingle taker running");
+    while(running) {
+
+      Word w = null;
+
+      try {
+        w = q.take();
+      } catch (InterruptedException e) {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+      }
+      if(w instanceof Poison) {
+        this.running = false;
+        //return map;
+      }else {
+        String shingle = w.getShingle();
+        List<Index> list = null;
+
+        if(!map.containsKey(shingle)) {
+          list = new ArrayList<>();
+          list.add(new Index(1, w.getFileName()));
+          map.put(shingle, list);
+        }else {
+          list = map.get(shingle);
+          boolean newFile = true;
+          for(Index i : list) {
+            if(i.getFileName().equalsIgnoreCase(w.getFileName())) {
+              newFile = false;
+              i.setFrequency(i.getFrequency() + 1);
+            }
+          }
+          if(newFile) {
+            list.add(new Index(1, w.getFileName()));
+          }
+
+        }
+      }
+      /*if(fileCount == 0) {
+          running = false;
+          System.out.println("Finish");
+          //printData();
+          //cosCalculator.cosineSimilarity();
+        }*/
+      if(!running) {
+        System.out.println(Thread.currentThread().getName() + "Finish");
+        /*cosCalculator.cosineSimilarity();
+        printData();
+        running = false;*/
+      }
+      /*if(!running) {
+          System.out.println("Finish");
+          cosCalculator.cosineSimilarity();
+          running = false;
+        }*/
+    }
+    return map;
+  }
+
+  @Override
+  public int compareTo(Map<String, List<Index>> arg0) {
+    
+    return this.map.size();
+  }
+
+}

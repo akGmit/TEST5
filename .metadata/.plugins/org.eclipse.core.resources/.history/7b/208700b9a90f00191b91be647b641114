@@ -1,0 +1,100 @@
+package ie.gmit.sw;
+
+import java.io.File;
+import java.io.FilenameFilter;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingQueue;
+
+public class CosineDistance {
+  private Processor processor;
+  private String subjectFileDir;
+  private String queryFile;
+  private ShingleProcessor shingleProcessor;
+  private Map<String, List<Index>> db = new ConcurrentSkipListMap<>();
+  private BlockingQueue<Word> q = new ArrayBlockingQueue<Word>(5);
+  private CosineDistanceCalculator cosineDistanceCalculator;
+  private volatile int fileCount;
+  
+  public CosineDistance() {
+    processor = new Processor(this.q);
+    //cosineDistanceCalculator = new CosineDistanceCalculator(this.db);
+  }
+  
+  public void processFiles() {
+    processor.processFiles(getQueryFile(), getSubjectFileDir());
+    cosineDistanceCalculator = new CosineDistanceCalculator(this.db, processor.query.getName());
+    processShingles(fileCount);
+    
+    cosineDistanceCalculator.setFileNames(processor.getFiles(), processor.query);
+  }
+  
+  public void processShingles(int fileCount) {
+    
+    ExecutorService pool = Executors.newFixedThreadPool(processor.getFileCount());
+    
+    Set<Future<Map<String, List<Index>>>> map = new HashSet<>(); 
+    
+    for(File f : processor.getFiles()) {
+      Future<Map<String, List<Index>>> result = pool.submit(new ShingleProc(this.q));
+      map.add(result);
+    }
+    pool.shutdown();
+    
+    for(Future<Map<String, List<Index>>> f : map) {
+      try {
+        cosineDistanceCalculator.createMaps(f.get());
+      } catch (InterruptedException e) {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+      } catch (ExecutionException e) {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+      } 
+    }
+    
+    
+    
+    cosineDistanceCalculator.cosineSimilarity();
+    
+      //new Thread(new ShingleProcessor(queue, db, processor.getFileCount())).start();
+  }
+
+  public String getQueryFile() {
+    return queryFile;
+  }
+
+  public void setQueryFile(String queryFile) {
+    this.queryFile = queryFile;
+  }
+
+  public Processor getProcessor() {
+    return processor;
+  }
+
+  public void setProcessor(Processor processor) {
+    this.processor = processor;
+  }
+
+  public String getSubjectFileDir() {
+    return subjectFileDir;
+  }
+
+  public void setSubjectFileDir(String subjectFileDir) {
+    this.subjectFileDir = subjectFileDir;
+  }
+}

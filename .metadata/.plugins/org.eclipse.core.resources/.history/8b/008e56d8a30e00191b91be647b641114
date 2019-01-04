@@ -1,0 +1,30 @@
+package ie.gmit.sw;
+
+public class CosineDistance {
+  private Processor processor;
+  private String subjectFileDir;
+  
+  public CosineDistance() {
+    processor = new Processor();
+  }
+  
+  public void processSubjectFiles() {
+    processor.processSubjectFiles(subjectFileDir);
+  }
+
+  public Processor getProcessor() {
+    return processor;
+  }
+
+  public void setProcessor(Processor processor) {
+    this.processor = processor;
+  }
+
+  public String getSubjectFileDir() {
+    return subjectFileDir;
+  }
+
+  public void setSubjectFileDir(String subjectFileDir) {
+    this.subjectFileDir = subjectFileDir;
+  }
+}

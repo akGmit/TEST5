@@ -1,0 +1,101 @@
+package ie.gmit.sw;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.concurrent.BlockingQueue;
+
+public class ShingleProcessor implements Runnable {
+  private Map<String, List<Index>> db;
+  private Map<String, Map<String, Integer>> db2 = new TreeMap<>();
+  private Map<String, Integer> db3 = new TreeMap<>();
+  private BlockingQueue<Word> queue;
+  private volatile int fileCount;
+  private volatile boolean running = true;
+  
+  public ShingleProcessor(BlockingQueue<Word> q, Map<String, List<Index>> db, int fileCount) {
+    this.queue = q;
+    this.fileCount = fileCount;
+    this.db = db;
+  }
+  @Override
+  public void run() {
+    /*try {
+      //Thread.sleep(3000);
+    } catch (InterruptedException e1) {
+      // TODO Auto-generated catch block
+      e1.printStackTrace();
+    }*/
+    System.out.println("Shingle taker running");
+    while(fileCount > 0 && running) {
+      Word w = null;
+      
+      try {
+        w = queue.take();
+      } catch (InterruptedException e) {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+      }
+      
+      if(w instanceof Poison) {
+        fileCount--;
+      }else {
+        String shingle = w.getShingle();
+        List<Index> list = null;
+        
+        if(!db.containsKey(shingle)) {
+          list = new ArrayList<>();
+          list.add(new Index(1, w.getFileName()));
+          db.put(shingle, list);
+          
+        /*}else if(db.containsKey(shingle)) {
+           
+          System.out.println("ASDF");
+          Index index = null;
+          list = db.get(shingle);
+          for(Index i : list) {
+            if(i.getFileName().equalsIgnoreCase(w.getFileName())) {
+              i.setFrequency(i.getFrequency() + 1);
+            }else {
+              index = new Index(1, w.getFileName());
+            }
+            
+          }
+          if(index != null) {
+            list.add(index);
+          }*/
+          
+        }
+          
+      }
+      
+      if(fileCount == 0) {
+        running = false;
+        db.forEach((k,v) -> printData(k,v));
+        //TEST
+        //db2.forEach((k,v) -> printData2(k,v));
+        //new CosineDistanceCalculator(db, "q").cosineSimilarity();
+      }
+    }
+  }
+  
+  private void printData2(String file, Map<String, Integer> d) {
+    System.out.println("\nFile name:" + file + "\n");
+    for(String s : d.keySet()) {
+        System.out.println(s + " " + d.get(s).intValue());
+    }
+  }
+  
+  public void printData(String name, List<Index> index) {
+    System.out.print(name+ "\n");
+    int total = 0;
+    for(Index i : index) {
+      
+      System.out.print(" " + i.getFileName() + " " + i.getFrequency());
+      total += i.getFrequency();
+      System.out.println();
+    }
+  }
+
+}

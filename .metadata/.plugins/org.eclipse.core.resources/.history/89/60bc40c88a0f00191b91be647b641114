@@ -1,0 +1,98 @@
+package ie.gmit.sw;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.BlockingQueue;
+
+public class ShingleProcessor implements Runnable {
+  private Map<String, List<Index>> db;
+  private BlockingQueue<Word> queue;
+  private volatile boolean running = true;
+  private CosineDistanceCalculator cosCalculator;
+  private volatile int fileCount;
+  private String file;
+
+  public ShingleProcessor(BlockingQueue<Word> q, Map<String, List<Index>> db, int fileCount) {
+    this.queue = q;
+    this.fileCount = fileCount;
+    this.db = db;
+    this.fileCount = fileCount;
+    this.cosCalculator = new CosineDistanceCalculator(db);
+  }
+  @Override
+  public void run() {
+    System.out.println("Shingle taker running");
+    while(running) {
+
+      Word w = null;
+
+      try {
+        w = queue.take();
+      } catch (InterruptedException e) {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+      }
+        if(w instanceof Poison) {
+          fileCount--;
+          //running = false;
+          cosCalculator.createSequenceMaps(w.getFileName());
+        }else {
+          String shingle = w.getShingle();
+          List<Index> list = null;
+
+          if(!db.containsKey(shingle)) {
+            list = new ArrayList<>();
+            list.add(new Index(1, w.getFileName()));
+            db.put(shingle, list);
+          }else {
+            list = db.get(shingle);
+            boolean newFile = true;
+            synchronized (db) {
+              for(Index i : list) {
+                if(i.getFileName().equalsIgnoreCase(w.getFileName())) {
+                  newFile = false;
+                  i.setFrequency(i.getFrequency() + 1);
+                }
+              }
+            }
+            if(newFile) {
+              list.add(new Index(1, w.getFileName()));
+            }
+
+          }
+        }
+
+        /*if(fileCount == 0) {
+          running = false;
+          System.out.println("Finish");
+          //printData();
+          //cosCalculator.cosineSimilarity();
+        }*/
+        if(fileCount == 0) {
+          System.out.println("Finish");
+          cosCalculator.cosineSimilarity();
+          running = false;
+        }
+        /*if(!running) {
+          System.out.println("Finish");
+          cosCalculator.cosineSimilarity();
+          running = false;
+        }*/
+      }
+    }
+
+  public void printData() {
+    Set<String> keys = db.keySet();
+    for(String s : keys) {
+      System.out.print(s + "---");
+      List<Index> l = db.get(s);
+      for(Index i : l) {
+        if(i.getFileName().equalsIgnoreCase("q"))
+          System.out.println("Frequencty " + i.getFrequency() + " File: " + i.getFileName());
+      }
+    }
+  }
+
+}

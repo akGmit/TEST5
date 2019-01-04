@@ -1,0 +1,69 @@
+package ie.gmit.sw;
+
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.concurrent.BlockingQueue;
+
+public class ShingleProcessor implements Runnable {
+  private Map<String, List<Index>> db = new TreeMap<>();
+  private BlockingQueue<Word> queue;
+  private volatile int fileCount;
+  
+  public ShingleProcessor(BlockingQueue<Word> q, int fileCount) {
+    this.queue = q;
+    this.fileCount = fileCount;
+  }
+  @Override
+  public void run() {
+    try {
+      Thread.sleep(3000);
+    } catch (InterruptedException e1) {
+      // TODO Auto-generated catch block
+      e1.printStackTrace();
+    }
+    System.out.println("Shingle taker running");
+    while(fileCount > 0) {
+      Word w = null;
+      
+      try {
+        w = queue.take();
+      } catch (InterruptedException e) {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+      }
+      
+      if(w instanceof Poison) {
+        fileCount--;
+      }else {
+        String shingle = w.getShingle();
+        List<Index> list = null;
+        
+        if(!db.containsKey(shingle)) {
+          
+          list = new ArrayList<Index>();
+          //list = db.get(shingle);
+          list.add(new Index(1, w.getFileName()));
+          db.put(shingle, list);
+        }else if(db.containsKey(shingle)) {
+          System.out.println("ASDF");
+          list = db.get(shingle);
+          for(Index i : list) {
+            if(w.getFileName().equalsIgnoreCase(i.getFileName())) {
+              i.setFrequency(444);
+              db.put(shingle, list);
+            }
+          }
+        }
+      }
+      
+      if(fileCount == 0) {
+        System.out.println(w.getFileName() + "======================================");
+        db.forEach((k,v) -> System.out.println(k + "         " + v.toString()));
+      }
+    }
+  }
+
+}

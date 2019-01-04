@@ -1,0 +1,19 @@
+package ie.gmit.sw;
+
+import java.util.concurrent.BlockingQueue;
+
+public class FileParser implements Runnable {
+  private BlockingQueue<Word> queue;
+  private String file;
+  
+  public FileParser(BlockingQueue<Word> queue, String file) {
+    this.queue = queue;
+    this.file = file;
+  }
+
+  @Override
+  public void run() {
+    
+  }
+
+}
